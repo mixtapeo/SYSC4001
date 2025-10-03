@@ -20,13 +20,14 @@ int main(int argc, char **argv)
     std::string execution; //!< string to accumulate the execution output
 
     /******************ADD YOUR VARIABLES HERE*************************/
-    int current_time = 0;                     // simulation clock (ms)
-    int context_save_time = 10;               // default context save/restore time (ms)
-    int isr_activity_time = 40;               // default ISR body time (ms)
+    int current_time = 0;                                   // simulation clock (ms)
+    int context_save_time = 10;                             // default context save/restore time (ms)
+    int isr_activity_time = 40;                             // default ISR body time (ms)
     std::vector<int> pending_completion(delays.size(), -1); // scheduled completion times for devices
 
     // simple trim lambda to remove leading/trailing whitespace from activity strings
-    auto trim = [](std::string &s) {
+    auto trim = [](std::string &s)
+    {
         size_t start = s.find_first_not_of(" \t\r\n");
         size_t end = s.find_last_not_of(" \t\r\n");
         if (start == std::string::npos)
@@ -37,7 +38,6 @@ int main(int argc, char **argv)
         s = s.substr(start, end - start + 1);
     };
     /******************************************************************/
-
     // parse each line of the input trace file
     while (std::getline(input_file, trace))
     {
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
         if (activity == "CPU")
         {
-            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + "\n";
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + " CPU processing\n";
             current_time += duration_intr;
         }
         else if (activity == "SYSCALL")
@@ -61,11 +61,11 @@ int main(int argc, char **argv)
             int isr_start = ret.second; // time when ISR body starts
 
             // execute isr: call device driver
-            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) +"\n";
+            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + " ISR Start\n";
             int isr_end = isr_start + isr_activity_time;
 
             // IRET
-            execution += std::to_string(isr_end) + "\n";
+            execution += std::to_string(isr_end) + " ISR END\n";
             current_time = isr_end + 1;
 
             // schedule device completion using device delay from device table
@@ -78,17 +78,9 @@ int main(int argc, char **argv)
         {
             // end of io, use previously scheduled completion time
             int dev = duration_intr;
-            int completion_time = -1;
-            if (dev >= 0 && dev < (int)pending_completion.size())
-                completion_time = pending_completion[dev];
+            int completion_time = pending_completion[dev];
 
-            if (completion_time == -1)
-            {
-                // if not scheduled, use current_time
-                completion_time = current_time;
-            }
-
-            execution += std::to_string(completion_time) + ", " + std::to_string(delays.at(dev)) + "\n";
+            execution += std::to_string(completion_time) + ", " + std::to_string(delays.at(dev)) + " END IO\n";
 
             // advance simulation time to reflect the I/O completion if needed
             current_time = std::max(current_time, completion_time + delays.at(dev));
