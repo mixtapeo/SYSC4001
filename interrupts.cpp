@@ -65,7 +65,7 @@ int main(int argc, char **argv)
             int isr_end = isr_start + isr_activity_time;
 
             // IRET
-            execution += std::to_string(isr_end) + " ISR END\n";
+            execution += std::to_string(isr_end) + ", 1 ISR end, returning\n";
             current_time = isr_end + 1;
 
             // schedule device completion using device delay from device table
@@ -78,15 +78,13 @@ int main(int argc, char **argv)
         {
             // end of io, use previously scheduled completion time
             int dev = duration_intr;
-            int completion_time = pending_completion[dev];
 
-            execution += std::to_string(completion_time) + ", " + std::to_string(delays.at(dev)) + " END IO\n";
+            execution += std::to_string(current_time) + ", " + std::to_string(delays.at(dev)) + " servicing device starts\n";
+            current_time += delays.at(dev);
 
-            // advance simulation time to reflect the I/O completion if needed
-            current_time = std::max(current_time, completion_time + delays.at(dev));
-
-            if (dev >= 0 && dev < (int)pending_completion.size())
-                pending_completion[dev] = -1;
+            // return
+            execution += std::to_string(current_time) + ", " + std::to_string(1) + " return\n";
+            current_time += 1; // same time as iret
         }
         else
         {

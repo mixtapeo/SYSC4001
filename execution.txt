@@ -1,17 +1,18 @@
-0, 50
+delays: [110, 100, 150, 300, 250, 211, 265, 152, 1000, 156, 564, 523, 145, 636, 456, 68, 956, 235, 123, 652]
+0, 50 CPU processing
 50, 1, switch to kernel mode
 51, 10, context saved
 61, 1, find vector 7 in memory position 0x000E
 62, 1, load address 0X00BD into the PC
-63, 40
-103
-215, 152
-367, 100
+63, 40 ISR Start
+103 ISR END
+215, 152 END IO
+367, 100 CPU processing
 467, 1, switch to kernel mode
 468, 10, context saved
 478, 1, find vector 12 in memory position 0x0018
 479, 1, load address 0X03B9 into the PC
-480, 40
-520
-625, 145
-770, 20
+480, 40 ISR Start
+520 ISR END
+625, 145 END IO
+770, 20 CPU processing
