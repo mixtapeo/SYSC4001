@@ -4,5 +4,5 @@ else
 	rm bin/*
 fi
 g++ -g -O0 -I . -o bin/interrupts interrupts.cpp
-./bin/interrupts traces/trace_0.txt vector_table.txt device_table.txt 
+./bin/interrupts trace.txt vector_table.txt device_table.txt 
 cat execution.txt

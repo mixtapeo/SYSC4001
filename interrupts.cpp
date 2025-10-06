@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
         if (activity == "CPU")
         {
-            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + " CPU processing\n";
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + " CPU Burst\n";
             current_time += duration_intr;
         }
         else if (activity == "SYSCALL")
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
             int isr_start = ret.second; // time when ISR body starts
 
             // execute isr: call device driver
-            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + " ISR Start\n";
+            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + " SYSCALL: run the ISR (device driver)\n";
             int isr_end = isr_start + isr_activity_time;
 
             // IRET

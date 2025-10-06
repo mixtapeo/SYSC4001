@@ -1,18 +1,20 @@
-delays: [110, 100, 150, 300, 250, 211, 265, 152, 1000, 156, 564, 523, 145, 636, 456, 68, 956, 235, 123, 652]
-0, 50 CPU processing
-50, 1, switch to kernel mode
-51, 10, context saved
-61, 1, find vector 7 in memory position 0x000E
-62, 1, load address 0X00BD into the PC
-63, 40 ISR Start
-103 ISR END
-215, 152 END IO
-367, 100 CPU processing
-467, 1, switch to kernel mode
-468, 10, context saved
-478, 1, find vector 12 in memory position 0x0018
-479, 1, load address 0X03B9 into the PC
-480, 40 ISR Start
-520 ISR END
-625, 145 END IO
-770, 20 CPU processing
+0, 51 CPU Burst
+51, 1, switch to kernel mode
+52, 10, context saved
+62, 1, find vector 14 in memory position 0x001C
+63, 1, load address 0X0165 into the PC
+64, 40 SYSCALL: run the ISR (device driver)
+104, 1 ISR end, returning
+105, 39 CPU Burst
+144, 456 servicing device starts
+600, 1 return
+601, 72 CPU Burst
+673, 1, switch to kernel mode
+674, 10, context saved
+684, 1, find vector 19 in memory position 0x0026
+685, 1, load address 0X0765 into the PC
+686, 40 SYSCALL: run the ISR (device driver)
+726, 1 ISR end, returning
+727, 28 CPU Burst
+755, 652 servicing device starts
+1407, 1 return
