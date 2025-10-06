@@ -2,7 +2,8 @@
  *
  * @file interrupts.cpp
  * @author Sasisekhar Govind
- *
+ * @author Anirudh Sridhar
+ * @author Panshul Bansal
  */
 
 #include <interrupts.hpp>
@@ -21,8 +22,8 @@ int main(int argc, char **argv)
 
     /******************ADD YOUR VARIABLES HERE*************************/
     int current_time = 0;                                   // simulation clock (ms)
-    int context_save_time = 10;                             // default context save/restore time (ms)
-    int isr_activity_time = 40;                             // default ISR body time (ms)
+    int context_save_time = 30;                             // default context save/restore time (ms)
+    int isr_activity_time = 200;                             // default ISR body time (ms)
     std::vector<int> pending_completion(delays.size(), -1); // scheduled completion times for devices
 
     // simple trim lambda to remove leading/trailing whitespace from activity strings
@@ -65,9 +66,14 @@ int main(int argc, char **argv)
             int isr_end = isr_start + isr_activity_time;
 
             // move data from device to memory
+            // transfer data from device to memory (debugging info)
             execution += std::to_string(isr_end) + ", " + std::to_string(isr_activity_time) + " transfer data from device to memory\n";
-            int data_move = isr_end + isr_activity_time;
-            current_time += data_move;
+            int transfer_start = isr_end;
+            int transfer_duration = isr_activity_time; // assume same transfer duration as ISR activity
+            int transfer_end = transfer_start + transfer_duration;
+
+            // advance simulation clock to end of data movement
+            current_time = transfer_end;
 
             int isr_time = delays.at(dev);
             execution += std::to_string(current_time) + ", " + std::to_string(isr_time) + ", does calculation" + "\n";
