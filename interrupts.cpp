@@ -1,31 +1,36 @@
 /**
- *
  * @file interrupts.cpp
- * @author Sasisekhar Govind
+ * @author
+ *   Adapted for SYSC 4001 Assignment 1 – Interrupt Simulator
  *
+ * @brief
+ *   Simulates CPU bursts, SYSCALL, and END_IO interrupts based on
+ *   a trace file and device/vector tables.
  */
 
-#include <interrupts.hpp>
+#include "interrupts.hpp"
 
 int main(int argc, char **argv)
 {
-
-    // vectors is a C++ std::vector of strings that contain the address of the ISR
-    // delays  is a C++ std::vector of ints that contain the delays of each device
-    // the index of these elemens is the device number, starting from 0
+    // vectors: ISR addresses; delays: device I/O delays
     auto [vectors, delays] = parse_args(argc, argv);
     std::ifstream input_file(argv[1]);
+    if (!input_file.is_open())
+    {
+        std::cerr << "Error: could not open input trace file.\n";
+        return 1;
+    }
 
-    std::string trace;     //!< string to store single line of trace file
-    std::string execution; //!< string to accumulate the execution output
+    std::string trace;      //!< current trace line
+    std::string execution;  //!< accumulated output text
 
-    /******************ADD YOUR VARIABLES HERE*************************/
-    int current_time = 0;                                   // simulation clock (ms)
-    int context_save_time = 10;                             // default context save/restore time (ms)
-    int isr_activity_time = 40;                             // default ISR body time (ms)
-    std::vector<int> pending_completion(delays.size(), -1); // scheduled completion times for devices
+    /****************** VARIABLES *************************/
+    int current_time = 0;      // simulation clock (ms)
+    int context_time = 10;     // context save/restore (ms)
+    int iret_time = 1;         // IRET time (ms)
+    /******************************************************/
 
-    // simple trim lambda to remove leading/trailing whitespace from activity strings
+    // whitespace cleanup helper
     auto trim = [](std::string &s)
     {
         size_t start = s.find_first_not_of(" \t\r\n");
@@ -37,67 +42,82 @@ int main(int argc, char **argv)
         }
         s = s.substr(start, end - start + 1);
     };
-    /******************************************************************/
-    // parse each line of the input trace file
+
+    // process each trace line
     while (std::getline(input_file, trace))
     {
-        auto [activity, duration_intr] = parse_trace(trace);
+        if (trace.empty())
+            continue;
 
-        /******************ADD YOUR SIMULATION CODE HERE*************************/
+        auto [activity, duration_intr] = parse_trace(trace);
         trim(activity);
 
+        // ---------- CASE 1: CPU ----------
         if (activity == "CPU")
         {
-            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + " CPU processing\n";
+            execution += std::to_string(current_time) + ", "
+                      + std::to_string(duration_intr) + ", CPU burst\n";
             current_time += duration_intr;
         }
+
+        // ---------- CASE 2: SYSCALL ----------
         else if (activity == "SYSCALL")
         {
-            int dev = duration_intr;
+            int dev = duration_intr; // device number
 
-            // run interrupt boilerplate (switch to kernel, save context, find vector, load PC)
-            auto ret = intr_boilerplate(current_time, dev, context_save_time, vectors);
-            execution += ret.first;
-            int isr_start = ret.second; // time when ISR body starts
+            // Steps 1–4  intr_boilerplate helper
+            auto [boiler_text, new_time] = intr_boilerplate(current_time, dev, context_time, vectors);
+            execution += boiler_text;
+            current_time = new_time;
 
-            // execute isr: call device driver
-            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + " ISR Start\n";
-            int isr_end = isr_start + isr_activity_time;
+            // Step 5: Execute ISR body 
+            int isr_time = delays.at(dev);
+            execution += std::to_string(current_time) + ", "
+                      + std::to_string(isr_time) + ", execute SYSCALL ISR for device "
+                      + std::to_string(dev) + "\n";
+            current_time += isr_time;
 
-            // IRET
-            execution += std::to_string(isr_end) + ", 1 ISR end, returning\n";
-            current_time = isr_end + 1;
-
-            // schedule device completion using device delay from device table
-            if (dev >= 0 && dev < (int)pending_completion.size())
-            {
-                pending_completion[dev] = isr_start + delays.at(dev);
-            }
+            // Step 6: IRET
+            execution += std::to_string(current_time) + ", "
+                      + std::to_string(iret_time) + ", IRET\n";
+            current_time += iret_time;
         }
+
+        // ---------- CASE 3: END_IO ----------
         else if (activity == "END_IO")
         {
-            // end of io, use previously scheduled completion time
-            int dev = duration_intr;
+            int dev = duration_intr; // device number
 
-            execution += std::to_string(current_time) + ", " + std::to_string(delays.at(dev)) + " servicing device starts\n";
-            current_time += delays.at(dev);
+            // Steps 1–4  intr_boilerplate helper
+            auto [boiler_text, new_time] = intr_boilerplate(current_time, dev, context_time, vectors);
+            execution += boiler_text;
+            current_time = new_time;
 
-            // return
-            execution += std::to_string(current_time) + ", " + std::to_string(1) + " return\n";
-            current_time += 1; // same time as iret
+            // Step 5: Execute ISR 
+            int isr_time = delays.at(dev);
+            execution += std::to_string(current_time) + ", "
+                      + std::to_string(isr_time) + ", execute END_IO ISR for device "
+                      + std::to_string(dev) + "\n";
+            current_time += isr_time;
+
+            // Step 6: IRET
+            execution += std::to_string(current_time) + ", "
+                      + std::to_string(iret_time) + ", IRET\n";
+            current_time += iret_time;
         }
+
+        // ---------- CASE 4: UNKNOWN ----------
         else
         {
-            // edge case error
-            execution += "// Unknown activity: " + activity + "CHECK THISSSSSSS\n";
+            execution += "# Warning: unknown activity '" + activity + "'\n";
         }
-
-        /************************************************************************/
     }
 
     input_file.close();
 
+    // write results to output file
     write_output(execution);
 
+    std::cout << "Simulation complete. Output written to execution.txt\n";
     return 0;
 }
