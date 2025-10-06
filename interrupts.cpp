@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
         if (activity == "CPU")
         {
-            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + " CPU Burst\n";
+            execution += std::to_string(current_time) + ", " + std::to_string(duration_intr) + ", CPU Burst\n";
             current_time += duration_intr;
         }
         else if (activity == "SYSCALL")
@@ -61,12 +61,17 @@ int main(int argc, char **argv)
             int isr_start = ret.second; // time when ISR body starts
 
             // execute isr: call device driver
-            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + " SYSCALL: run the ISR (device driver)\n";
+            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + ", SYSCALL: run the ISR (device driver)" + " of device " + std::to_string(dev) + "\n";
             int isr_end = isr_start + isr_activity_time;
 
-            // IRET
-            execution += std::to_string(isr_end) + ", 1 ISR end, returning\n";
-            current_time = isr_end + 1;
+            // move data from device to memory
+            execution += std::to_string(isr_end) + ", " + std::to_string(isr_activity_time) + " transfer data from device to memory\n";
+            int data_move = isr_end + isr_activity_time;
+            current_time += data_move;
+
+            int isr_time = delays.at(dev);
+            execution += std::to_string(current_time) + ", " + std::to_string(isr_time) + ", does calculation" + "\n";
+            current_time += isr_time;
 
             // schedule device completion using device delay from device table
             if (dev >= 0 && dev < (int)pending_completion.size())
@@ -79,12 +84,17 @@ int main(int argc, char **argv)
             // end of io, use previously scheduled completion time
             int dev = duration_intr;
 
+            // run interrupt boilerplate (switch to kernel, save context, find vector, load PC)
+            auto ret = intr_boilerplate(current_time, dev, context_save_time, vectors);
+            execution += ret.first;
+            int isr_start = ret.second; // time when ISR body starts
+
+            // execute syscall: call commands
+            execution += std::to_string(isr_start) + ", " + std::to_string(isr_activity_time) + ", ENDIO: run the syscall interrupt driver\n";
+            current_time = isr_start + isr_activity_time;
+
             execution += std::to_string(current_time) + ", " + std::to_string(delays.at(dev)) + " servicing device starts\n";
             current_time += delays.at(dev);
-
-            // return
-            execution += std::to_string(current_time) + ", " + std::to_string(1) + " return\n";
-            current_time += 1; // same time as iret
         }
         else
         {
